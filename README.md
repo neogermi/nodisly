@@ -31,5 +31,5 @@ $ node nodisly.js
 
 # Custom configurations
 
-TODO!
+TODO write how to configure nodisly!
 
