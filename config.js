@@ -14,9 +14,10 @@ var tmpConfig = (Nodisly.path.existsSync("nodisly.conf"))?
 Nodisly.Config = {
         
     PORT            : tmpConfig.port ? tmpConfig.port : 3000,
+    BASE_URL        : tmpConfig.base_url ? tmpConfig.base_url : "http://localhost:" + this.PORT,
     R_PRFX          : "nodisly:",
-    FREE_IDS_FIELD  : this.R_PRFX + "free_uuids",
-    TAKEN_IDS_FIELD : this.R_PRFX + "taken_uuids",
+    FREE_IDS_FIELD  : "nodisly:free_uuids",
+    TAKEN_IDS_FIELD : "nodisly:taken_uuids",
     ONE_YEAR        : 365 * 24 * 60 * 60,
     MAX_SIZE_LIST   : tmpConfig.max_size_list ? tmpConfig.max_size_list : 1000000,
     WARN_SIZE_LIST  : tmpConfig.warn_size_list ? tmpConfig.warn_size_list : 10000,

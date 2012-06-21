@@ -43,9 +43,12 @@ Nodisly.Util.toDateString = function (d) {
     return d.getDate() + "/" + months[d.getMonth()-1] + "/" + d.getFullYear() + ":" + hours + ":" + mins + ":" + secs + " " + offsetStr;     
 };
 
+Nodisly.Util.isValidId = function (id) {
+    return (typeof id === "string") && id.match(/^[\w\-\_]{3,20}$/) !== null;
+};
+
 // PURGE DB: redis-cli KEYS "nodisly:*" | xargs redis-cli -n 100 DEL
 // PURGE DB: redis-cli KEYS "nodisly:free_uuids*" | xargs redis-cli -n 100 DEL
 // PURGE DB: redis-cli KEYS "nodisly:taken_uuids*" | xargs redis-cli -n 100 DEL
-// FILL-UP: for i in {1..1000000}; do key=`cat /dev/urandom | tr -cd "$CHAR" | head -c ${1:-6}` && redis-cli LPUSH "nodisly:free_uuids" $key;
 
 /**************** UTILITIES / HELPER ****************/

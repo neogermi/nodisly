@@ -8,6 +8,8 @@ Nodisly = (typeof Nodisly === "undefined")? {} : Nodisly;
 /**************** DEPENDENCIES ****************/
 Nodisly.redis = require("redis");
 Nodisly.express = require("express");
+Nodisly.path = require('path');
+Nodisly.fs = require('fs');
 /**************** DEPENDENCIES ****************/
 
 require('./config.js');

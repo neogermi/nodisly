@@ -21,6 +21,6 @@ require('./database.js');
 require('./rest.js');
 /**************** MODULES ****************/
 
-console.log("server started at: http://127.0.0.1:" + Nodisly.Config.PORT);
+console.log("server started at: http://127.0.0.1:" + Nodisly.Config.PORT + " with base url:" + Nodisly.Config.BASE_URL);
 Nodisly.REST.app.listen(Nodisly.Config.PORT);
 

@@ -15,44 +15,63 @@ Nodisly.Database.rclient.on("error", function (err) {
 /**************** DB SETUP ****************/
 
 /**************** DB ACCESS ****************/
-Nodisly.Database.createSurl = function (url, success, error) {
+Nodisly.Database.createSurl = function (body, success, error) {
 
-    Nodisly.Database.rclient.get(Nodisly.Config.R_PRFX + "url:" + url, function(err, reply) {
-        if (reply === null) {
-            // we do not know this URL!
-            Nodisly.Database.rclient.spop(Nodisly.Config.FREE_IDS_FIELD, function (err, uuid) {
-                Nodisly.Database.rclient.sadd(Nodisly.Config.TAKEN_IDS_FIELD, uuid);
-                Nodisly.Database.rclient.hmset( Nodisly.Config.R_PRFX + "uuid:" + uuid, "url", url, "uuid", uuid);
-                Nodisly.Database.rclient.set(   Nodisly.Config.R_PRFX + "url:"  + url,  uuid);
-                Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "uuid:" + uuid, Nodisly.Config.ONE_YEAR); // expires after one year!
-                Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "url:"  + url,  Nodisly.Config.ONE_YEAR); // expires after one year!
-                success({"url" : url, "uuid" : uuid});
-            });
-        } else {
-            success({"url" : url, "uuid" : reply});
-        }
-        
-        Nodisly.Database.rclient.scard(Nodisly.Config.FREE_IDS_FIELD, function (e, len) {
-            if (len < Nodisly.Config.WARN_SIZE_LIST)
-                Nodisly.Email.send(Nodisly.Config.ADMIN_EMAIL, 
-                        "Warning: Nodisly is running out of IDs", 
-                        "Please fill the DB soon with fresh UUIDs!\n" + 
-                        "$ node fill_keys.js");
+    if (Nodisly.Util.isValidId(body.id)) {
+        Nodisly.Database.rclient.get(Nodisly.Config.R_PRFX + "uuid:" + body.id, function(err, reply) {
+            if (reply === null) {
+                Nodisly.Database.rclient.srem(Nodisly.Config.FREE_IDS_FIELD, body.id, function (err) {
+                    Nodisly.Database.rclient.sadd(Nodisly.Config.TAKEN_IDS_FIELD, body.id);
+                    Nodisly.Database.rclient.hmset( Nodisly.Config.R_PRFX + "uuid:" + body.id, "url", body.url, "uuid", body.id);
+                    Nodisly.Database.rclient.sadd(  Nodisly.Config.R_PRFX + "url:"  + body.url,  body.id);
+                    Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "uuid:" + body.id, Nodisly.Config.ONE_YEAR); // expires after one year!
+                    Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "url:"  + body.url,  Nodisly.Config.ONE_YEAR); // expires after one year!
+                    success({"url" : body.url, "surl" : Nodisly.Config.BASE_URL + ((Nodisly.Config.BASE_URL.substr(-1) === "/")? "" : "/") + body.id, "id" : body.id});
+                });
+            } else {
+                delete body["id"];
+                return Nodisly.Database.createSurl(body, success, error);
+            }
         });
-        
-    });
+    } else {
+        Nodisly.Database.rclient.smembers(Nodisly.Config.R_PRFX + "url:" + body.url, function(err, reply) {
+            if (reply === null) {
+                // we do not know this URL!
+                Nodisly.Database.rclient.spop(Nodisly.Config.FREE_IDS_FIELD, function (err, uuid) {
+                    Nodisly.Database.rclient.sadd(Nodisly.Config.TAKEN_IDS_FIELD, uuid);
+                    Nodisly.Database.rclient.hmset( Nodisly.Config.R_PRFX + "uuid:" + uuid, "url", body.url, "uuid", uuid);
+                    Nodisly.Database.rclient.sadd(  Nodisly.Config.R_PRFX + "url:"  + body.url,  uuid);
+                    Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "uuid:" + uuid, Nodisly.Config.ONE_YEAR); // expires after one year!
+                    Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "url:"  + body.url,  Nodisly.Config.ONE_YEAR); // expires after one year!
+                    success({"url" : body.url, "surl" : Nodisly.Config.BASE_URL + ((Nodisly.Config.BASE_URL.substr(-1) === "/")? "" : "/") + uuid, "id" : uuid});
+                });
+            } else {
+                reply = (typeof reply === "object")? reply.shift() : reply;
+                success({"url" : body.url, "surl" : Nodisly.Config.BASE_URL + ((Nodisly.Config.BASE_URL.substr(-1) === "/")? "" : "/") + reply, "id" : reply});
+            }
+            
+            Nodisly.Database.rclient.scard(Nodisly.Config.FREE_IDS_FIELD, function (e, len) {
+                if (len < Nodisly.Config.WARN_SIZE_LIST)
+                    Nodisly.Email.send(Nodisly.Config.ADMIN_EMAIL, 
+                            "Warning: Nodisly is running out of IDs", 
+                            "Please fill the DB soon with fresh UUIDs!\n" + 
+                            "$ node fill_keys.js");
+            });
+        });
+    }
 };
 
-Nodisly.Database.getSurl = function (uuid, success, error) {
-    if (uuid) {
-        Nodisly.Database.rclient.hgetall(Nodisly.Config.R_PRFX + "uuid:" + uuid, function(err, reply) {
+Nodisly.Database.getSurl = function (id, success, error) {
+    if (Nodisly.Util.isValidId(id)) {
+        Nodisly.Database.rclient.hgetall(Nodisly.Config.R_PRFX + "uuid:" + id, function(err, reply) {
             if (reply !== null) {
                 var surl = {
-                    "uuid" : uuid,
+                    "id" : id,
+                    "surl" : Nodisly.Config.BASE_URL + ((Nodisly.Config.BASE_URL.substr(-1) === "/")? "" : "/") + id,
                     "url" : reply.url
                 };
                 // update TTL!
-                Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "uuid:" + uuid, Nodisly.Config.ONE_YEAR);
+                Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "uuid:" + id, Nodisly.Config.ONE_YEAR);
                 Nodisly.Database.rclient.expire(Nodisly.Config.R_PRFX + "url:" + surl.url, Nodisly.Config.ONE_YEAR);
                 success(surl);
             } else {

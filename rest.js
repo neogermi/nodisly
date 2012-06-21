@@ -17,12 +17,12 @@ Nodisly.REST.app.configure(function(){
 
 /**************** REST INTERFACE ****************/
 
-Nodisly.REST.app.post(/^\/ly\/?$/, function(req, res, next) {
+Nodisly.REST.app.post(/^\/$/, function(req, res, next) {
     var host = req.header('host');
     var referer = req.header('referrer');
     referer = (referer)? ("\"" + referer + "\"") : "-";
     var useragent = req.headers['user-agent'];
-    Nodisly.Database.createSurl(req.body.url, function (surl) {
+    Nodisly.Database.createSurl(req.body, function (surl) {
         res.header('Access-Control-Allow-Origin', '*');
         res.json(surl);
         Nodisly.Util.apacheLog(host, new Date(), "POST", req.url, 200, surl, referer, useragent);
@@ -32,7 +32,18 @@ Nodisly.REST.app.post(/^\/ly\/?$/, function(req, res, next) {
     });
 });
 
-Nodisly.REST.app.get(/^\/ly\/(\w{5,})\/stats$/, function(req, res, next) {
+Nodisly.REST.app.get(/^\/?$/, function(req, res, next) {
+    Nodisly.fs.readFile("index.html", function(err,data) {
+        if (err) {
+            console.log("not found!");
+            res.send(err, 404);
+        } else {
+            res.send(data.toString());
+        }
+    });
+});
+
+Nodisly.REST.app.get(/^\/(\w{5,})\/stats$/, function(req, res, next) {
     var host = req.header('host');
     var referer = req.header('referrer');
     referer = (referer)? ("\"" + referer + "\"") : "-";
@@ -42,7 +53,7 @@ Nodisly.REST.app.get(/^\/ly\/(\w{5,})\/stats$/, function(req, res, next) {
     res.send(msg, 404);
 });
 
-Nodisly.REST.app.get(/^\/ly\/(\w{3,}?)\/?$/, function(req, res, next) {
+Nodisly.REST.app.get(/^\/(\w{3,}?)\/?$/, function(req, res, next) {
     var host = req.header('host');
     var referer = req.header('referrer');
     referer = (referer)? ("\"" + referer + "\"") : "-";
